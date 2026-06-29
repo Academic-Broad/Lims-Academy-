@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Role } from '@/lib/roles'
+import Flutterwave from 'flutterwave-node-v3'
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
+const flw = new Flutterwave(process.env.FLW_PUBLIC_KEY, process.env.FLW_SECRET_KEY)
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
@@ -18,14 +19,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Reference required' }, { status: 400 })
     }
 
-    if (PAYSTACK_SECRET_KEY && PAYSTACK_SECRET_KEY.startsWith('sk_')) {
-      const resp = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
-      })
-      const data = await resp.json()
-
-      if (!data.status || data.data.status !== 'success') {
-        return NextResponse.json({ error: 'Payment not confirmed by Paystack' }, { status: 400 })
+    if (process.env.FLW_SECRET_KEY && process.env.FLW_SECRET_KEY.startsWith('FLWSECK')) {
+      const response = await flw.Transaction.verify({ id: reference })
+      if (response.status !== 'success' || response.data.status !== 'successful') {
+        return NextResponse.json({ error: 'Payment not confirmed by Flutterwave' }, { status: 400 })
       }
     }
 
@@ -47,7 +44,7 @@ export async function POST(req: Request) {
           paidAt: new Date(),
         },
       })
-      await prisma.paystackTransaction.updateMany({
+      await prisma.flutterwaveTransaction.updateMany({
         where: { reference },
         data: { status: 'success' },
       })

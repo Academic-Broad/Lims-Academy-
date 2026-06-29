@@ -3,6 +3,7 @@ export interface FeeCategoryRecord {
   value: string
   label: string
   description: string | null
+  amount: number | null
   sortOrder: number
   isActive: boolean
 }

@@ -71,19 +71,19 @@ model Payment {
 
   student         Student         @relation(fields: [studentId], references: [id])
   parent          User            @relation(fields: [parentId], references: [id])
-  paystackTxns    PaystackTransaction[]
+  flutterwaveTxns FlutterwaveTransaction[]
 
   @@index([parentId, createdAt])
   @@index([parentId, status])
 }
 
-model PaystackTransaction {
+model FlutterwaveTransaction {
   id              String          @id @default(uuid())
   paymentId       String
   reference       String          @unique
   amount          Float
   status          String          @default("pending")
-  paystackData    String?
+  flutterwaveData String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -115,6 +115,7 @@ model FeeCategory {
   value       String   @unique
   label       String
   description String?
+  amount      Float?
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())

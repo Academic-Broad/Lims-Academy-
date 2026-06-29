@@ -11,10 +11,11 @@ interface Payment {
   amount: number
   paidAmount: number
   description: string
+  feeType: string
   status: string
   dueDate: string | null
   paidAt: string | null
-  student: { firstName: string; lastName: string; grade: string }
+  student: { id: string; firstName: string; lastName: string; grade: string }
 }
 
 export default function PaymentsPage() {
@@ -48,30 +49,49 @@ export default function PaymentsPage() {
     }
   }
 
-  async function handlePay(paymentId: string) {
-    setPaying(paymentId)
+  async function handlePay(payment: Payment) {
+    setPaying(payment.id)
     try {
-      const res = await fetch('/api/payments/initialize', {
+      const initRes = await fetch('/api/payments/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId }),
+        body: JSON.stringify({
+          studentId: payment.student.id,
+          feeType: payment.feeType,
+          amount: payment.amount,
+          description: payment.description,
+        }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Payment failed')
+      const initData = await initRes.json()
+      if (!initRes.ok) throw new Error(initData.error || 'Payment failed')
 
-      const verifyRes = await fetch('/api/payments/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference: data.reference }),
-      })
-      const verifyData = await verifyRes.json()
-      if (verifyData.success) {
-        setReceipt(verifyData.payment)
-        await fetchPayments()
+      const flutterwaveWindow = window.open(initData.authorization_url, '_blank')
+      if (flutterwaveWindow) {
+        const pollInterval = setInterval(async () => {
+          try {
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference: initData.reference }),
+            })
+            const verifyData = await verifyRes.json()
+            if (verifyData.success && verifyData.payment.status === 'Paid') {
+              clearInterval(pollInterval)
+              setReceipt(verifyData.payment)
+              await fetchPayments()
+              setPaying(null)
+            }
+          } catch {
+            // poll until verified
+          }
+        }, 3000)
+        setTimeout(() => clearInterval(pollInterval), 120000)
+      } else {
+        alert('Popup blocked. Please allow popups for this site.')
+        setPaying(null)
       }
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Payment failed')
-    } finally {
       setPaying(null)
     }
   }
@@ -119,7 +139,7 @@ export default function PaymentsPage() {
                   <div className="text-right">
                     <p className="text-xl font-bold text-amber-700 dark:text-amber-400">₦{p.amount.toLocaleString()}</p>
                     <button
-                      onClick={() => handlePay(p.id)}
+                      onClick={() => handlePay(p)}
                       disabled={paying === p.id}
                       className="mt-2 bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
                     >

@@ -81,75 +81,29 @@ export function PaymentModal({ students, onClose, onSuccess }: PaymentModalProps
       const initData = await initRes.json()
       if (!initRes.ok) throw new Error(initData.error || 'Payment initialization failed')
 
-      if (initData.authorization_url) {
-        const paystackWindow = window.open(initData.authorization_url, '_blank')
-        if (paystackWindow) {
-          const pollInterval = setInterval(async () => {
-            try {
-              const verifyRes = await fetch('/api/payments/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reference: initData.reference }),
-              })
-              const verifyData = await verifyRes.json()
-              if (verifyData.success && verifyData.payment.status === 'Paid') {
-                clearInterval(pollInterval)
-                setPaying(false)
-                reset()
-                onSuccess()
-              }
-            } catch {
-              // poll until verified
+      const flutterwaveWindow = window.open(initData.authorization_url, '_blank')
+      if (flutterwaveWindow) {
+        const pollInterval = setInterval(async () => {
+          try {
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference: initData.reference }),
+            })
+            const verifyData = await verifyRes.json()
+            if (verifyData.success && verifyData.payment.status === 'Paid') {
+              clearInterval(pollInterval)
+              setPaying(false)
+              reset()
+              onSuccess()
             }
-          }, 3000)
-          setTimeout(() => clearInterval(pollInterval), 120000)
-        }
-      } else if (typeof window !== 'undefined' && initData.public_key) {
-        const PaystackPop = (window as any).PaystackPop
-        if (PaystackPop) {
-          const handler = PaystackPop.setup({
-            key: initData.public_key,
-            email: '',
-            amount: parseFloat(customAmount) * 100,
-            ref: initData.reference,
-            channels: initData.channels || ['card', 'bank_transfer', 'ussd'],
-            onClose: () => {
-              setPaying(false)
-            },
-            callback: async (response: { reference: string }) => {
-              const verifyRes = await fetch('/api/payments/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reference: response.reference }),
-              })
-              const verifyData = await verifyRes.json()
-              if (verifyData.success && verifyData.payment.status === 'Paid') {
-                reset()
-                onSuccess()
-              } else {
-                setError('Payment verification failed. Please contact support.')
-              }
-              setPaying(false)
-            },
-          })
-          handler.openIframe()
-        } else {
-          setError('Payment gateway unavailable. Please try again.')
-          setPaying(false)
-        }
+          } catch {
+            // poll until verified
+          }
+        }, 3000)
+        setTimeout(() => clearInterval(pollInterval), 120000)
       } else {
-        const verifyRes = await fetch('/api/payments/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reference: initData.reference }),
-        })
-        const verifyData = await verifyRes.json()
-        if (verifyData.success && verifyData.payment.status === 'Paid') {
-          reset()
-          onSuccess()
-        } else {
-          setError('Payment processing failed. Please try again.')
-        }
+        setError('Popup blocked. Please allow popups for this site.')
         setPaying(false)
       }
     } catch (err: unknown) {

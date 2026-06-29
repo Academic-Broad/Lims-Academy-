@@ -9,7 +9,7 @@ A school management system built with Next.js, featuring parent and admin portal
 - **Database:** SQLite via Prisma ORM
 - **Styling:** Tailwind CSS
 - **Email:** Nodemailer (Resend/SMTP)
-- **Payments:** Paystack integration
+- **Payments:** Flutterwave integration
 - **PDF:** jsPDF for receipts
 
 ## Features
@@ -65,8 +65,9 @@ Copy `.env` and configure:
 | `SMTP_PASS` | SMTP password |
 | `FROM_EMAIL` | Sender email address |
 | `ADMIN_EMAIL` | Admin notification email |
-| `PAYSTACK_SECRET_KEY` | Paystack secret key |
-| `PAYSTACK_PUBLIC_KEY` | Paystack public key |
+| `FLW_PUBLIC_KEY` | Flutterwave public key |
+| `FLW_SECRET_KEY` | Flutterwave secret key |
+| `FLW_ENCRYPTION_KEY` | Flutterwave encryption key |
 
 ## Default Admin
 

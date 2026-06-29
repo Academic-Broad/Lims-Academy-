@@ -10,6 +10,7 @@ interface FeeCategory {
   value: string
   label: string
   description: string | null
+  amount: number | null
   sortOrder: number
   isActive: boolean
 }
@@ -21,7 +22,7 @@ export default function FeeCategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<FeeCategory | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ value: '', label: '', description: '' })
+  const [form, setForm] = useState({ value: '', label: '', description: '', amount: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -51,21 +52,21 @@ export default function FeeCategoriesPage() {
   function startEdit(cat: FeeCategory) {
     setEditing(cat)
     setShowForm(true)
-    setForm({ value: cat.value, label: cat.label, description: cat.description || '' })
+    setForm({ value: cat.value, label: cat.label, description: cat.description || '', amount: cat.amount ? cat.amount.toString() : '' })
     setError('')
   }
 
   function startCreate() {
     setEditing(null)
     setShowForm(true)
-    setForm({ value: '', label: '', description: '' })
+    setForm({ value: '', label: '', description: '', amount: '' })
     setError('')
   }
 
   function cancelEdit() {
     setEditing(null)
     setShowForm(false)
-    setForm({ value: '', label: '', description: '' })
+    setForm({ value: '', label: '', description: '', amount: '' })
     setError('')
   }
 
@@ -82,7 +83,7 @@ export default function FeeCategoriesPage() {
         const res = await fetch('/api/admin/fee-categories', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editing.id, ...form }),
+          body: JSON.stringify({ id: editing.id, value: form.value, label: form.label, description: form.description, amount: form.amount ? parseFloat(form.amount) : null }),
         })
         if (!res.ok) {
           const data = await res.json()
@@ -92,7 +93,7 @@ export default function FeeCategoriesPage() {
         const res = await fetch('/api/admin/fee-categories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
+          body: JSON.stringify({ ...form, amount: form.amount ? parseFloat(form.amount) : null }),
         })
         if (!res.ok) {
           const data = await res.json()
@@ -153,7 +154,7 @@ export default function FeeCategoriesPage() {
               <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
                 {editing ? 'Edit Category' : 'New Category'}
               </h2>
-              <div className="grid md:grid-cols-3 gap-4 mb-4">
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Value *</label>
                   <input
@@ -175,6 +176,18 @@ export default function FeeCategoriesPage() {
                     onChange={(e) => setForm({ ...form, label: e.target.value })}
                     className="w-full border dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="e.g. Bus Fee"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Amount (NGN)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={form.amount}
+                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                    className="w-full border dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 50000"
                   />
                 </div>
                 <div>
@@ -223,6 +236,7 @@ export default function FeeCategoriesPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Value</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Label</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Description</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Amount</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
               </tr>
@@ -234,6 +248,7 @@ export default function FeeCategoriesPage() {
                   <td className="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">{cat.value}</td>
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{cat.label}</td>
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{cat.description || '-'}</td>
+                  <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{cat.amount ? `₦${cat.amount.toLocaleString()}` : '-'}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => handleToggleActive(cat)}

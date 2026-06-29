@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import Script from 'next/script'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -27,7 +26,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{
           __html: `try{const t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`
         }} />
-        <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
+        
       </head>
       <body className={`${inter.variable} min-h-screen flex flex-col bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100`}>
         <ThemeProvider>

@@ -28,14 +28,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { value, label, description } = await req.json()
+    const { value, label, description, amount } = await req.json()
     if (!value || !label) {
       return NextResponse.json({ error: 'Value and label are required' }, { status: 400 })
     }
 
     const maxOrder = await prisma.feeCategory.findFirst({ orderBy: { sortOrder: 'desc' } })
     const category = await prisma.feeCategory.create({
-      data: { value, label, description, sortOrder: (maxOrder?.sortOrder ?? -1) + 1 },
+      data: { value, label, description, amount: amount || null, sortOrder: (maxOrder?.sortOrder ?? -1) + 1 },
     })
     return NextResponse.json(category, { status: 201 })
   } catch (error) {
@@ -51,7 +51,7 @@ export async function PUT(req: Request) {
   }
 
   try {
-    const { id, value, label, description, sortOrder, isActive } = await req.json()
+    const { id, value, label, description, amount, sortOrder, isActive } = await req.json()
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 })
     }
@@ -60,6 +60,7 @@ export async function PUT(req: Request) {
     if (value !== undefined) data.value = value
     if (label !== undefined) data.label = label
     if (description !== undefined) data.description = description
+    if (amount !== undefined) data.amount = amount
     if (sortOrder !== undefined) data.sortOrder = sortOrder
     if (isActive !== undefined) data.isActive = isActive
 
