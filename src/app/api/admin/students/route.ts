@@ -38,7 +38,15 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Student ID is required' }, { status: 400 })
     }
 
-    await prisma.student.delete({ where: { id } })
+    const payments = await prisma.payment.findMany({ where: { studentId: id }, select: { id: true } })
+    const paymentIds = payments.map(p => p.id)
+
+    await prisma.$transaction([
+      prisma.flutterwaveTransaction.deleteMany({ where: { paymentId: { in: paymentIds } } }),
+      prisma.payment.deleteMany({ where: { studentId: id } }),
+      prisma.parentStudent.deleteMany({ where: { studentId: id } }),
+      prisma.student.delete({ where: { id } }),
+    ])
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Delete student error:', error)
