@@ -9,7 +9,7 @@ import { Role } from '@/lib/roles'
 // @ts-ignore
 import Flutterwave from 'flutterwave-node-v3'
 
-const flw = new Flutterwave(process.env.FLW_PUBLIC_KEY, process.env.FLW_SECRET_KEY)
+const flw = new Flutterwave(process.env.FLW_PUBLIC_KEY || 'dummy_key', process.env.FLW_SECRET_KEY || 'dummy_key')
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
