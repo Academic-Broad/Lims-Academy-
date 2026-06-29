@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String            @id @default(uuid())
+  email           String            @unique
+  passwordHash    String?
+  name            String
+  role            String            @default("PARENT")
+  phone           String?
+  resetToken      String?
+  resetTokenExpires DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  parentStudents  ParentStudent[]
+  payments        Payment[]
+  sentMessages    ContactMessage[]
+  approvals       PendingApproval[]
+}
+
+model Student {
+  id              String          @id @default(uuid())
+  firstName       String
+  lastName        String
+  age             Int
+  grade           String
+  enrollmentDate  DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  parentStudents  ParentStudent[]
+  payments        Payment[]
+}
+
+model ParentStudent {
+  id              String          @id @default(uuid())
+  parentId        String
+  studentId       String
+  relationship    String          @default("Parent")
+  createdAt       DateTime        @default(now())
+
+  parent          User            @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student         Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+}
+
+model Payment {
+  id              String          @id @default(uuid())
+  invoiceNo       String          @unique
+  studentId       String
+  parentId        String
+  amount          Float
+  paidAmount      Float           @default(0)
+  description     String
+  feeType         String          @default("Tuition")
+  paymentMethod   String?
+  status          String          @default("Pending")
+  dueDate         DateTime?
+  paidAt          DateTime?
+  receiptUrl      String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  student         Student         @relation(fields: [studentId], references: [id])
+  parent          User            @relation(fields: [parentId], references: [id])
+  paystackTxns    PaystackTransaction[]
+
+  @@index([parentId, createdAt])
+  @@index([parentId, status])
+}
+
+model PaystackTransaction {
+  id              String          @id @default(uuid())
+  paymentId       String
+  reference       String          @unique
+  amount          Float
+  status          String          @default("pending")
+  paystackData    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  payment         Payment         @relation(fields: [paymentId], references: [id])
+}
+
+model PendingApproval {
+  id              String          @id @default(uuid())
+  parentName      String
+  parentEmail     String
+  parentPhone     String?
+  studentName     String
+  studentAge      Int
+  studentGrade    String
+  message         String?
+  status          String          @default("Pending")
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  reviewer        User?           @relation(fields: [reviewedBy], references: [id])
+
+  @@index([status, createdAt])
+}
+
+model FeeCategory {
+  id          String   @id @default(uuid())
+  value       String   @unique
+  label       String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContactMessage {
+  id              String          @id @default(uuid())
+  name            String
+  email           String
+  subject         String?
+  message         String
+  isRead          Boolean         @default(false)
+  repliedBy       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  replier         User?           @relation(fields: [repliedBy], references: [id])
+
+  @@index([isRead, createdAt])
+}
