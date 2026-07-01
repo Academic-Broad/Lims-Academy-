@@ -84,6 +84,42 @@ export async function POST(req: Request) {
   }
 }
 
+export async function DELETE(req: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session || session.user.role !== Role.ADMIN) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ error: 'Parent ID is required' }, { status: 400 })
+    }
+
+    const user = await prisma.user.findUnique({ where: { id } })
+    if (!user || user.role !== Role.PARENT) {
+      return NextResponse.json({ error: 'Parent not found' }, { status: 404 })
+    }
+
+    const payments = await prisma.payment.findMany({ where: { parentId: id }, select: { id: true } })
+    const paymentIds = payments.map(p => p.id)
+
+    await prisma.$transaction([
+      prisma.flutterwaveTransaction.deleteMany({ where: { paymentId: { in: paymentIds } } }),
+      prisma.payment.deleteMany({ where: { parentId: id } }),
+      prisma.parentStudent.deleteMany({ where: { parentId: id } }),
+      prisma.contactMessage.deleteMany({ where: { repliedBy: id } }),
+      prisma.pendingApproval.deleteMany({ where: { reviewedBy: id } }),
+      prisma.user.delete({ where: { id } }),
+    ])
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Delete parent error:', error)
+    return NextResponse.json({ error: 'Failed to delete parent' }, { status: 500 })
+  }
+}
+
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
   if (!session || session.user.role !== Role.ADMIN) {

@@ -12,6 +12,7 @@ const navItems = [
   { href: '/admin/messages', label: 'Messages' },
   { href: '/admin/fee-categories', label: 'Fee Categories' },
   { href: '/admin/users/create', label: 'Create User' },
+  { href: '/admin/parents', label: 'Parents' },
   { href: '/admin/students', label: 'Students' },
   { href: '/admin/change-password', label: 'Change Password' },
   { href: '/admin/change-email', label: 'Change Email' },
