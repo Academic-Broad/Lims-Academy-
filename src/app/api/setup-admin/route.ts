@@ -1,24 +1,34 @@
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient();
 
 export async function GET() {
-  const existing = await prisma.user.findUnique({ where: { email: 'admin@lims.com' } })
-  if (existing) {
-    return NextResponse.json({ message: 'Admin already exists' })
+  try {
+    const existingAdmin = await prisma.user.findUnique({
+      where: { email: 'admin@lims.com' }
+    });
+
+    if (existingAdmin) {
+      return NextResponse.json({ message: "Admin account already exists!" });
+    }
+
+    const hashedPassword = await bcrypt.hash('password123', 12);
+
+    await prisma.user.create({
+      data: {
+        name: 'System Admin',
+        email: 'admin@lims.com',
+        password: hashedPassword,
+        role: 'ADMIN'
+      }
+    });
+
+    return NextResponse.json({ message: "Admin created successfully!" });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  const hash = await bcrypt.hash('password123', 10)
-  await prisma.user.create({
-    data: {
-      name: 'Admin',
-      email: 'admin@lims.com',
-      role: 'ADMIN',
-      passwordHash: hash,
-    },
-  })
-
-  return NextResponse.json({ message: 'Admin created successfully' })
 }
