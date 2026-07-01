@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { sendEmail, getPasswordSetupEmail } from '@/lib/email'
-import { v4 as uuid } from 'uuid'
 import bcrypt from 'bcryptjs'
 import { Role } from '@/lib/roles'
 
@@ -14,7 +12,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { parentName, parentEmail, parentPhone, studentFirstName, studentLastName, studentAge, studentGrade, sendEmail: shouldSendEmail } = await req.json()
+    const { parentName, parentEmail, parentPhone, studentFirstName, studentLastName, studentAge, studentGrade } = await req.json()
 
     if (!parentName || !parentEmail || !studentFirstName || !studentLastName || !studentAge || !studentGrade) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -25,8 +23,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 })
     }
 
-    const tempToken = uuid()
-    const tempHash = await bcrypt.hash(tempToken, 10)
+    const defaultPassword = "parent123"
+    const passwordHash = await bcrypt.hash(defaultPassword, 10)
 
     const parent = await prisma.user.create({
       data: {
@@ -34,7 +32,7 @@ export async function POST(req: Request) {
         email: parentEmail,
         phone: parentPhone,
         role: Role.PARENT,
-        passwordHash: tempHash,
+        passwordHash,
       },
     })
 
@@ -66,17 +64,11 @@ export async function POST(req: Request) {
       },
     })
 
-    if (shouldSendEmail !== false) {
-      const setupLink = `${process.env.NEXTAUTH_URL}/login?setup=${tempToken}&email=${encodeURIComponent(parentEmail)}`
-      const emailContent = getPasswordSetupEmail(parentName, setupLink)
-      await sendEmail({ to: parentEmail, ...emailContent })
-    }
-
     return NextResponse.json({
       success: true,
       parent: { id: parent.id, name: parent.name, email: parent.email },
       student: { id: student.id, name: `${student.firstName} ${student.lastName}` },
-      tempPassword: tempToken,
+      defaultPassword,
     })
   } catch (error) {
     console.error('Create user error:', error)

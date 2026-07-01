@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { sendEmail, getApprovalEmail } from '@/lib/email'
-import { v4 as uuid } from 'uuid'
 import bcrypt from 'bcryptjs'
 import { Role } from '@/lib/roles'
 
@@ -52,8 +50,8 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
 
-    const tempToken = uuid()
-    const tempHash = await bcrypt.hash(tempToken, 10)
+    const defaultPassword = "parent123"
+    const passwordHash = await bcrypt.hash(defaultPassword, 10)
 
     const nameParts = approval.studentName.trim().split(/\s+/)
 
@@ -72,7 +70,7 @@ export async function PATCH(req: Request) {
             email: approval.parentEmail,
             phone: approval.parentPhone,
             role: Role.PARENT,
-            passwordHash: tempHash,
+            passwordHash,
           },
         })
         isNewParent = true
@@ -111,21 +109,13 @@ export async function PATCH(req: Request) {
       return { parent, student, isNewParent }
     })
 
-    if (result.isNewParent) {
-      const setupLink = `${process.env.NEXTAUTH_URL}/login?setup=${tempToken}&email=${encodeURIComponent(approval.parentEmail)}`
-      const emailContent = getApprovalEmail(approval.parentName, setupLink)
-      sendEmail({ to: approval.parentEmail, ...emailContent }).catch((err) => {
-        console.error('Failed to send approval email:', err)
-      })
-    }
-
     return NextResponse.json({
       success: true,
       status: 'Approved',
       isNewParent: result.isNewParent,
-      tempPassword: result.isNewParent ? tempToken : undefined,
+      defaultPassword: result.isNewParent ? defaultPassword : undefined,
       message: result.isNewParent
-        ? 'Student approved. A setup link has been sent to the parent.'
+        ? `Student approved. Parent can log in with email ${approval.parentEmail} and password "${defaultPassword}".`
         : 'Student approved and linked to existing parent account.',
       parent: { id: result.parent.id, name: result.parent.name, email: result.parent.email },
       student: { id: result.student.id, name: `${result.student.firstName} ${result.student.lastName}` },
