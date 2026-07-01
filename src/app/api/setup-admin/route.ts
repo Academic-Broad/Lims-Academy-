@@ -22,7 +22,7 @@ export async function GET() {
       data: {
         name: 'System Admin',
         email: 'admin@lims.com',
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         role: 'ADMIN'
       }
     });
